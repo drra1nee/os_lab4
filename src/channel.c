@@ -4,21 +4,18 @@
 #include <stdio.h>
 #include <string.h>
 
-static void make_name(char *buf, size_t size, const char *kind, DWORD parent_pid, int idx)
-{
+static void make_name(char *buf, size_t size, const char *kind, DWORD parent_pid, int idx) {
     snprintf(buf, size, "Local\\lab4_%s_%lu_%d", kind, parent_pid, idx);
 }
 
-static void channel_reset(channel_t *chan)
-{
+static void channel_reset(channel_t *chan) {
     chan->map = NULL;
     chan->view = NULL;
     chan->ev_ready = NULL;
     chan->ev_free = NULL;
 }
 
-int channel_create(channel_t *chan, DWORD parent_pid, int idx)
-{
+int channel_create(channel_t *chan, DWORD parent_pid, int idx) {
     char name[128];
     channel_reset(chan);
 
@@ -61,8 +58,7 @@ int channel_create(channel_t *chan, DWORD parent_pid, int idx)
     return 0;
 }
 
-int channel_open(channel_t *chan, DWORD parent_pid, int idx)
-{
+int channel_open(channel_t *chan, DWORD parent_pid, int idx) {
     char name[128];
     channel_reset(chan);
 
@@ -99,8 +95,7 @@ int channel_open(channel_t *chan, DWORD parent_pid, int idx)
     return 0;
 }
 
-void channel_close(channel_t *chan)
-{
+void channel_close(channel_t *chan) {
     if (chan->view != NULL && !UnmapViewOfFile(chan->view))
         print_error("UnmapViewOfFile");
     if (chan->map != NULL && !CloseHandle(chan->map))
@@ -112,8 +107,7 @@ void channel_close(channel_t *chan)
     channel_reset(chan);
 }
 
-int channel_send(channel_t *chan, HANDLE peer, const char *data, DWORD len, DWORD seq, LONG done)
-{
+int channel_send(channel_t *chan, HANDLE peer, const char *data, DWORD len, DWORD seq, LONG done) {
     // потомок первым, чтобы не писать строку мертвому процессу
     HANDLE w[2] = { peer, chan->ev_free };
     DWORD r = WaitForMultipleObjects(2, w, FALSE, INFINITE);
@@ -137,8 +131,7 @@ int channel_send(channel_t *chan, HANDLE peer, const char *data, DWORD len, DWOR
     return 0;
 }
 
-int channel_recv(channel_t *chan, HANDLE peer, char *out, DWORD *len, DWORD *seq)
-{
+int channel_recv(channel_t *chan, HANDLE peer, char *out, DWORD *len, DWORD *seq) {
     // событие первым, чтобы дочитать уже переданное
     HANDLE w[2] = { chan->ev_ready, peer };
     DWORD r = WaitForMultipleObjects(2, w, FALSE, INFINITE);

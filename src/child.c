@@ -5,8 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static int write_all(HANDLE h, const char *buf, DWORD len)
-{
+static int write_all(HANDLE h, const char *buf, DWORD len) {
     while (len > 0) {
         DWORD written = 0;
         if (!WriteFile(h, buf, len, &written, NULL)) {
@@ -19,8 +18,7 @@ static int write_all(HANDLE h, const char *buf, DWORD len)
     return 0;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     static char line[SHM_DATA_SIZE];
     static char out[SHM_DATA_SIZE + 1];
     char tag[16];

@@ -2,13 +2,11 @@
 
 #include <string.h>
 
-static int is_latin_vowel(unsigned char c)
-{
+static int is_latin_vowel(unsigned char c) {
     return c != '\0' && strchr("aeiouyAEIOUY", c) != NULL;
 }
 
-static int utf8_len(unsigned char c)
-{
+static int utf8_len(unsigned char c) {
     if (c < 0x80)           return 1;
     if ((c & 0xE0) == 0xC0) return 2;
     if ((c & 0xF0) == 0xE0) return 3;
@@ -17,8 +15,7 @@ static int utf8_len(unsigned char c)
 }
 
 // русские гласные в UTF-8: 2 байта, первый 0xD0 или 0xD1
-static int is_cyr_vowel(unsigned char b0, unsigned char b1)
-{
+static int is_cyr_vowel(unsigned char b0, unsigned char b1) {
     if (b0 == 0xD0) {
         switch (b1) {
         case 0x90: case 0x95: case 0x81: case 0x98: case 0x9E:  // А Е Ё И О
@@ -35,8 +32,7 @@ static int is_cyr_vowel(unsigned char b0, unsigned char b1)
     return 0;
 }
 
-int remove_vowels(const char *src, char *dst)
-{
+int remove_vowels(const char *src, char *dst) {
     const unsigned char *p = (const unsigned char *)src;
     int n = 0;
 

@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void print_error(const char *msg)
-{
+void print_error(const char *msg) {
     DWORD err = GetLastError();
     wchar_t wbuf[512];
     char buf[1024];
@@ -27,8 +26,7 @@ void print_error(const char *msg)
             GetCurrentProcessId(), GetCurrentThreadId(), msg, buf, err);
 }
 
-void log_msg(const char *tag, const char *fmt, ...)
-{
+void log_msg(const char *tag, const char *fmt, ...) {
     char text[10240];
     va_list ap;
 
@@ -42,8 +40,7 @@ void log_msg(const char *tag, const char *fmt, ...)
     fflush(stderr);
 }
 
-int read_line(char *buf, int size)
-{
+int read_line(char *buf, int size) {
     if (fgets(buf, size, stdin) == NULL)
         return -1;
 

@@ -17,8 +17,7 @@ typedef struct {
     int                 alive;
 } child_t;
 
-static int to_wide(const char *src, wchar_t *dst, int size)
-{
+static int to_wide(const char *src, wchar_t *dst, int size) {
     if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, dst, size) == 0) {
         print_error("MultiByteToWideChar");
         return -1;
@@ -26,8 +25,7 @@ static int to_wide(const char *src, wchar_t *dst, int size)
     return 0;
 }
 
-static void make_stderr_inheritable(void)
-{
+static void make_stderr_inheritable(void) {
     HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
     if (h != NULL && h != INVALID_HANDLE_VALUE &&
         !SetHandleInformation(h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT))
@@ -35,8 +33,7 @@ static void make_stderr_inheritable(void)
 }
 
 // файл открывает родитель и отдает потомку как stdout
-static int spawn_child(child_t *c, int idx)
-{
+static int spawn_child(child_t *c, int idx) {
     wchar_t wexe[MAX_PATH], wfile[MAX_PATH], cmd[2 * MAX_PATH];
     STARTUPINFOW si;
     SECURITY_ATTRIBUTES sa = { sizeof(sa), NULL, TRUE };
@@ -73,8 +70,7 @@ static int spawn_child(child_t *c, int idx)
     return 0;
 }
 
-static int finish_children(child_t *children, int n)
-{
+static int finish_children(child_t *children, int n) {
     HANDLE procs[CHILDREN];
     int cnt = 0, rc = 0;
 
@@ -128,8 +124,7 @@ static int finish_children(child_t *children, int n)
     return rc;
 }
 
-static int ask_file(const char *prompt, char *buf, int size)
-{
+static int ask_file(const char *prompt, char *buf, int size) {
     printf("%s", prompt);
     fflush(stdout);
     int n = read_line(buf, size);
@@ -152,8 +147,7 @@ static int ask_file(const char *prompt, char *buf, int size)
     return 0;
 }
 
-int main(void)
-{
+int main(void) {
     static char line[SHM_DATA_SIZE];
     child_t children[CHILDREN] = { { .exe = "child1.exe" }, { .exe = "child2.exe" } };
     int rc = 0;
