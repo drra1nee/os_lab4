@@ -1,0 +1,8 @@
+out1.txt
+out2.txt
+Hello World
+Привет, мир!
+Operating Systems
+Отображаемые файлы
+memory-mapped files
+
