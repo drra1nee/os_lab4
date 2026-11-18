@@ -41,7 +41,6 @@ int channel_create(channel_t *chan, DWORD parent_pid, int idx)
         channel_close(chan);
         return -1;
     }
-    memset(chan->view, 0, sizeof(shm_block_t));
 
     make_name(name, sizeof(name), "ready", parent_pid, idx);
     chan->ev_ready = CreateEventA(NULL, FALSE, FALSE, name);   // данных пока нет
@@ -115,11 +114,6 @@ void channel_close(channel_t *chan)
 
 int channel_send(channel_t *chan, HANDLE peer, const char *data, DWORD len, DWORD seq, LONG done)
 {
-    if (len >= SHM_DATA_SIZE) {
-        fprintf(stderr, "channel_send: строка длиной %lu не помещается в блок\n", len);
-        return -1;
-    }
-
     // потомок первым, чтобы не писать строку мертвому процессу
     HANDLE w[2] = { peer, chan->ev_free };
     DWORD r = WaitForMultipleObjects(2, w, FALSE, INFINITE);
@@ -133,8 +127,7 @@ int channel_send(channel_t *chan, HANDLE peer, const char *data, DWORD len, DWOR
     chan->view->done = done;
     chan->view->seq = seq;
     chan->view->len = len;
-    if (len > 0)
-        memcpy(chan->view->data, data, len);
+    memcpy(chan->view->data, data, len);
     chan->view->data[len] = '\0';
 
     if (!SetEvent(chan->ev_ready)) {
