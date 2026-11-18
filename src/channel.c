@@ -9,111 +9,111 @@ static void make_name(char *buf, size_t size, const char *kind, DWORD parent_pid
     snprintf(buf, size, "Local\\lab4_%s_%lu_%d", kind, parent_pid, idx);
 }
 
-static void channel_reset(channel_t *ch)
+static void channel_reset(channel_t *chan)
 {
-    ch->map = NULL;
-    ch->view = NULL;
-    ch->ev_ready = NULL;
-    ch->ev_free = NULL;
+    chan->map = NULL;
+    chan->view = NULL;
+    chan->ev_ready = NULL;
+    chan->ev_free = NULL;
 }
 
-int channel_create(channel_t *ch, DWORD parent_pid, int idx)
+int channel_create(channel_t *chan, DWORD parent_pid, int idx)
 {
     char name[128];
-    channel_reset(ch);
+    channel_reset(chan);
 
     make_name(name, sizeof(name), "shm", parent_pid, idx);
-    ch->map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
+    chan->map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
                                  0, (DWORD)sizeof(shm_block_t), name);
-    if (ch->map == NULL) {
+    if (chan->map == NULL) {
         print_error("CreateFileMapping");
         return -1;
     }
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         fprintf(stderr, "Объект %s уже существует\n", name);
-        channel_close(ch);
+        channel_close(chan);
         return -1;
     }
 
-    ch->view = (shm_block_t *)MapViewOfFile(ch->map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(shm_block_t));
-    if (ch->view == NULL) {
+    chan->view = (shm_block_t *)MapViewOfFile(chan->map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(shm_block_t));
+    if (chan->view == NULL) {
         print_error("MapViewOfFile");
-        channel_close(ch);
+        channel_close(chan);
         return -1;
     }
-    memset(ch->view, 0, sizeof(shm_block_t));
+    memset(chan->view, 0, sizeof(shm_block_t));
 
     make_name(name, sizeof(name), "ready", parent_pid, idx);
-    ch->ev_ready = CreateEventA(NULL, FALSE, FALSE, name);   // данных пока нет
-    if (ch->ev_ready == NULL) {
+    chan->ev_ready = CreateEventA(NULL, FALSE, FALSE, name);   // данных пока нет
+    if (chan->ev_ready == NULL) {
         print_error("CreateEvent (ready)");
-        channel_close(ch);
+        channel_close(chan);
         return -1;
     }
 
     make_name(name, sizeof(name), "free", parent_pid, idx);
-    ch->ev_free = CreateEventA(NULL, FALSE, TRUE, name);     // блок свободен
-    if (ch->ev_free == NULL) {
+    chan->ev_free = CreateEventA(NULL, FALSE, TRUE, name);     // блок свободен
+    if (chan->ev_free == NULL) {
         print_error("CreateEvent (free)");
-        channel_close(ch);
+        channel_close(chan);
         return -1;
     }
 
     return 0;
 }
 
-int channel_open(channel_t *ch, DWORD parent_pid, int idx)
+int channel_open(channel_t *chan, DWORD parent_pid, int idx)
 {
     char name[128];
-    channel_reset(ch);
+    channel_reset(chan);
 
     make_name(name, sizeof(name), "shm", parent_pid, idx);
-    ch->map = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, name);
-    if (ch->map == NULL) {
+    chan->map = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, name);
+    if (chan->map == NULL) {
         print_error("OpenFileMapping");
         return -1;
     }
 
-    ch->view = (shm_block_t *)MapViewOfFile(ch->map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(shm_block_t));
-    if (ch->view == NULL) {
+    chan->view = (shm_block_t *)MapViewOfFile(chan->map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(shm_block_t));
+    if (chan->view == NULL) {
         print_error("MapViewOfFile");
-        channel_close(ch);
+        channel_close(chan);
         return -1;
     }
 
     make_name(name, sizeof(name), "ready", parent_pid, idx);
-    ch->ev_ready = OpenEventA(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, name);
-    if (ch->ev_ready == NULL) {
+    chan->ev_ready = OpenEventA(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, name);
+    if (chan->ev_ready == NULL) {
         print_error("OpenEvent (ready)");
-        channel_close(ch);
+        channel_close(chan);
         return -1;
     }
 
     make_name(name, sizeof(name), "free", parent_pid, idx);
-    ch->ev_free = OpenEventA(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, name);
-    if (ch->ev_free == NULL) {
+    chan->ev_free = OpenEventA(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, name);
+    if (chan->ev_free == NULL) {
         print_error("OpenEvent (free)");
-        channel_close(ch);
+        channel_close(chan);
         return -1;
     }
 
     return 0;
 }
 
-void channel_close(channel_t *ch)
+void channel_close(channel_t *chan)
 {
-    if (ch->view != NULL && !UnmapViewOfFile(ch->view))
+    if (chan->view != NULL && !UnmapViewOfFile(chan->view))
         print_error("UnmapViewOfFile");
-    if (ch->map != NULL && !CloseHandle(ch->map))
+    if (chan->map != NULL && !CloseHandle(chan->map))
         print_error("CloseHandle (map)");
-    if (ch->ev_ready != NULL && !CloseHandle(ch->ev_ready))
+    if (chan->ev_ready != NULL && !CloseHandle(chan->ev_ready))
         print_error("CloseHandle (ready)");
-    if (ch->ev_free != NULL && !CloseHandle(ch->ev_free))
+    if (chan->ev_free != NULL && !CloseHandle(chan->ev_free))
         print_error("CloseHandle (free)");
-    channel_reset(ch);
+    channel_reset(chan);
 }
 
-int channel_send(channel_t *ch, HANDLE peer, const char *data, DWORD len, DWORD seq, LONG done)
+int channel_send(channel_t *chan, HANDLE peer, const char *data, DWORD len, DWORD seq, LONG done)
 {
     if (len >= SHM_DATA_SIZE) {
         fprintf(stderr, "channel_send: строка длиной %lu не помещается в блок\n", len);
@@ -121,7 +121,7 @@ int channel_send(channel_t *ch, HANDLE peer, const char *data, DWORD len, DWORD 
     }
 
     // потомок первым, чтобы не писать строку мертвому процессу
-    HANDLE w[2] = { peer, ch->ev_free };
+    HANDLE w[2] = { peer, chan->ev_free };
     DWORD r = WaitForMultipleObjects(2, w, FALSE, INFINITE);
     if (r == WAIT_OBJECT_0)
         return 1;
@@ -130,24 +130,24 @@ int channel_send(channel_t *ch, HANDLE peer, const char *data, DWORD len, DWORD 
         return -1;
     }
 
-    ch->view->done = done;
-    ch->view->seq = seq;
-    ch->view->len = len;
+    chan->view->done = done;
+    chan->view->seq = seq;
+    chan->view->len = len;
     if (len > 0)
-        memcpy(ch->view->data, data, len);
-    ch->view->data[len] = '\0';
+        memcpy(chan->view->data, data, len);
+    chan->view->data[len] = '\0';
 
-    if (!SetEvent(ch->ev_ready)) {
+    if (!SetEvent(chan->ev_ready)) {
         print_error("SetEvent (ready)");
         return -1;
     }
     return 0;
 }
 
-int channel_recv(channel_t *ch, HANDLE peer, char *out, DWORD *len, DWORD *seq)
+int channel_recv(channel_t *chan, HANDLE peer, char *out, DWORD *len, DWORD *seq)
 {
     // событие первым, чтобы дочитать уже переданное
-    HANDLE w[2] = { ch->ev_ready, peer };
+    HANDLE w[2] = { chan->ev_ready, peer };
     DWORD r = WaitForMultipleObjects(2, w, FALSE, INFINITE);
     if (r == WAIT_OBJECT_0 + 1)
         return 2;
@@ -156,17 +156,17 @@ int channel_recv(channel_t *ch, HANDLE peer, char *out, DWORD *len, DWORD *seq)
         return -1;
     }
 
-    LONG done = ch->view->done;
-    DWORD n = ch->view->len;
+    LONG done = chan->view->done;
+    DWORD n = chan->view->len;
     if (n >= SHM_DATA_SIZE)
         n = SHM_DATA_SIZE - 1;
 
-    *seq = ch->view->seq;
+    *seq = chan->view->seq;
     *len = n;
-    memcpy(out, ch->view->data, n);
+    memcpy(out, chan->view->data, n);
     out[n] = '\0';
 
-    if (!SetEvent(ch->ev_free)) {
+    if (!SetEvent(chan->ev_free)) {
         print_error("SetEvent (free)");
         return -1;
     }

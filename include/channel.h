@@ -19,14 +19,14 @@ typedef struct {
     HANDLE       ev_free;
 } channel_t;
 
-int channel_create(channel_t *ch, DWORD parent_pid, int idx);
-int channel_open(channel_t *ch, DWORD parent_pid, int idx);
-void channel_close(channel_t *ch);
+int channel_create(channel_t *chan, DWORD parent_pid, int idx);
+int channel_open(channel_t *chan, DWORD parent_pid, int idx);
+void channel_close(channel_t *chan);
 
 // 0 если все ок, -1 ошибка, 1 если потомок peer уже завершился
-int channel_send(channel_t *ch, HANDLE peer, const char *data, DWORD len, DWORD seq, LONG done);
+int channel_send(channel_t *chan, HANDLE peer, const char *data, DWORD len, DWORD seq, LONG done);
 
 // 1 строка, 0 конец данных, -1 ошибка, 2 если родитель peer завершился
-int channel_recv(channel_t *ch, HANDLE peer, char *out, DWORD *len, DWORD *seq);
+int channel_recv(channel_t *chan, HANDLE peer, char *out, DWORD *len, DWORD *seq);
 
 #endif
