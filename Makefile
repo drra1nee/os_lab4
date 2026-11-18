@@ -24,6 +24,5 @@ build/%.o: src/%.c include/*.h | build
 build:
 	mkdir build
 
-# работает и в cmd (mingw32-make), и в sh/bash
 clean:
 	-rm -rf build $(TARGETS) 2>/dev/null || (del /f /q $(TARGETS) & rmdir /s /q build)

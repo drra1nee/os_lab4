@@ -7,7 +7,6 @@ static int is_latin_vowel(unsigned char c)
     return c != '\0' && strchr("aeiouyAEIOUY", c) != NULL;
 }
 
-// длина символа UTF-8 по первому байту
 static int utf8_len(unsigned char c)
 {
     if (c < 0x80)           return 1;

@@ -3,17 +3,15 @@
 
 #include <windows.h>
 
-// максимальная длина строки вместе с '\0'
 #define SHM_DATA_SIZE 4096
 
 typedef struct {
     LONG  done;   // 1 - данных больше не будет
-    DWORD seq;    // номер строки во вводе
+    DWORD seq;
     DWORD len;
     char  data[SHM_DATA_SIZE];
 } shm_block_t;
 
-// ev_ready - в блоке новая строка, ev_free - потомок забрал строку
 typedef struct {
     HANDLE       map;
     shm_block_t *view;

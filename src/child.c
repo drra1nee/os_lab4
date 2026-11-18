@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// WriteFile может записать не все сразу
 static int write_all(HANDLE h, const char *buf, DWORD len)
 {
     while (len > 0) {
@@ -47,7 +46,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // Ctrl+C игнорируем, выйдем сами, когда завершится родитель
+    // Ctrl+C игнорируем, выходим вслед за родителем
     if (!SetConsoleCtrlHandler(NULL, TRUE))
         print_error("SetConsoleCtrlHandler");
 

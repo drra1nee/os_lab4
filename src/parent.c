@@ -17,7 +17,6 @@ typedef struct {
     int                 alive;
 } child_t;
 
-// UTF-8 -> UTF-16, чтобы работали русские имена файлов
 static int to_wide(const char *src, wchar_t *dst, int size)
 {
     if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, dst, size) == 0) {
@@ -27,7 +26,6 @@ static int to_wide(const char *src, wchar_t *dst, int size)
     return 0;
 }
 
-// чтобы потомки писали журнал в общую консоль
 static void make_stderr_inheritable(void)
 {
     HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
@@ -36,7 +34,7 @@ static void make_stderr_inheritable(void)
         print_error("SetHandleInformation");
 }
 
-// файл открывает родитель и отдает потомку как stdout, потомок о нем не знает
+// файл открывает родитель и отдает потомку как stdout
 static int spawn_child(child_t *c, int idx)
 {
     wchar_t wexe[MAX_PATH], wfile[MAX_PATH], cmd[2 * MAX_PATH];
@@ -63,7 +61,6 @@ static int spawn_child(child_t *c, int idx)
     si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
     ZeroMemory(&c->pi, sizeof(c->pi));
 
-    // наследуются только файл и stderr, объекты IPC потомок открывает по имени
     BOOL ok = CreateProcessW(NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &c->pi);
     if (!ok)
         print_error("CreateProcess");
@@ -97,7 +94,6 @@ static int finish_children(child_t *children, int n)
     if (cnt > 0) {
         DWORD r = WaitForMultipleObjects((DWORD)cnt, procs, TRUE, WAIT_EXIT_MS);
         if (r == WAIT_TIMEOUT) {
-            // потомок завис, не оставляем его после себя
             log_msg("PARENT", "потомки не завершились за %d мс, принудительное завершение", WAIT_EXIT_MS);
             for (int i = 0; i < cnt; i++)
                 if (!TerminateProcess(procs[i], 3) && GetLastError() != ERROR_ACCESS_DENIED)
@@ -149,7 +145,6 @@ static int ask_file(const char *prompt, char *buf, int size)
         fprintf(stderr, "Имя файла не может быть пустым\n");
         return -1;
     }
-    // при вводе из файла введенное не видно, повторяем его
     if (GetFileType(GetStdHandle(STD_INPUT_HANDLE)) != FILE_TYPE_CHAR) {
         printf("%s\n", buf);
         fflush(stdout);

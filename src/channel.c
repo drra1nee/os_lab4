@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// PID родителя в имени, чтобы копии программы не мешали друг другу
 static void make_name(char *buf, size_t size, const char *kind, DWORD parent_pid, int idx)
 {
     snprintf(buf, size, "Local\\lab4_%s_%lu_%d", kind, parent_pid, idx);
@@ -23,7 +22,6 @@ int channel_create(channel_t *ch, DWORD parent_pid, int idx)
     char name[128];
     channel_reset(ch);
 
-    // на файле подкачки
     make_name(name, sizeof(name), "shm", parent_pid, idx);
     ch->map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
                                  0, (DWORD)sizeof(shm_block_t), name);
@@ -54,7 +52,7 @@ int channel_create(channel_t *ch, DWORD parent_pid, int idx)
     }
 
     make_name(name, sizeof(name), "free", parent_pid, idx);
-    ch->ev_free = CreateEventA(NULL, FALSE, TRUE, name);     // блок изначально свободен
+    ch->ev_free = CreateEventA(NULL, FALSE, TRUE, name);     // блок свободен
     if (ch->ev_free == NULL) {
         print_error("CreateEvent (free)");
         channel_close(ch);
@@ -122,7 +120,7 @@ int channel_send(channel_t *ch, HANDLE peer, const char *data, DWORD len, DWORD 
         return -1;
     }
 
-    // потомок первым: если он уже завершился, строку в пустоту не пишем
+    // потомок первым, чтобы не писать строку мертвому процессу
     HANDLE w[2] = { peer, ch->ev_free };
     DWORD r = WaitForMultipleObjects(2, w, FALSE, INFINITE);
     if (r == WAIT_OBJECT_0)
@@ -148,7 +146,7 @@ int channel_send(channel_t *ch, HANDLE peer, const char *data, DWORD len, DWORD 
 
 int channel_recv(channel_t *ch, HANDLE peer, char *out, DWORD *len, DWORD *seq)
 {
-    // событие первым, чтобы дочитать уже переданные строки
+    // событие первым, чтобы дочитать уже переданное
     HANDLE w[2] = { ch->ev_ready, peer };
     DWORD r = WaitForMultipleObjects(2, w, FALSE, INFINITE);
     if (r == WAIT_OBJECT_0 + 1)
